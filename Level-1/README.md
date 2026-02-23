@@ -103,7 +103,7 @@ mongod --version
 
 ### 📸 MongoDB Setup Screenshot
 
-![MongoDB Setup](./Level-1/public/mongodb.png)
+![MongoDB Setup](./public/mongodb.png)
 
 ------------------------------------------------------------------------
 
@@ -121,7 +121,7 @@ mongod --version
 
 ### 📸 Terminal Setup Screenshot
 
-![Terminal Setup](./Level-1/public/terminal-setup.png)
+![Terminal Setup](./public/terminal-setup.png)
 
 ------------------------------------------------------------------------
 
