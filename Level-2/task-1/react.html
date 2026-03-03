@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Codveda Level 2 - React</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0}
+    .wrap{max-width:860px;margin:0 auto;padding:30px 20px}
+    h1{font-size:1.8rem;color:#4ade80;text-align:center;margin-bottom:6px}
+    .sub{text-align:center;color:#94a3b8;font-size:.85rem;margin-bottom:24px}
+    .tabs{display:flex;gap:8px;margin-bottom:20px}
+    .tab{padding:9px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:.88rem}
+    .on{background:#4ade80;color:#0f172a}.off{background:#1e293b;color:#94a3b8}
+    .card{background:#1e293b;border-radius:12px;padding:22px;margin-bottom:16px;border:1px solid #334155}
+    .card h2{font-size:.95rem;color:#4ade80;margin-bottom:14px}
+    input,select{width:100%;padding:10px 14px;background:#0f172a;border:1.5px solid #334155;border-radius:8px;color:#e2e8f0;font-size:.92rem;margin-bottom:10px}
+    input:focus,select:focus{outline:none;border-color:#4ade80}
+    .btn{padding:10px 18px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem}
+    .bg{background:#4ade80;color:#0f172a}.bb{background:#60a5fa;color:#0f172a}.br{background:#f87171;color:#fff}.bgr{background:#334155;color:#e2e8f0}
+    .alert{padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:.86rem}
+    .ok{background:#14532d;color:#4ade80}.err{background:#7f1d1d;color:#f87171}
+    .ugrid{display:grid;gap:10px}
+    .ucard{background:#0f172a;border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border:1px solid #334155}
+    .uname{font-size:.93rem}.uemail{font-size:.78rem;color:#64748b}
+    .rb{padding:2px 10px;border-radius:999px;font-size:.72rem;font-weight:700}
+    .ra{background:#fef3c7;color:#92400e}.ru{background:#dbeafe;color:#1e3a5f}
+    .empty{text-align:center;color:#64748b;padding:22px;font-style:italic}
+    .tbox{background:#0f172a;border:1px solid #4ade80;border-radius:8px;padding:10px;font-size:.7rem;color:#4ade80;word-break:break-all;margin-top:10px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect}=React;
+const BASE='http://localhost:3000';
+
+function Auth({token,setToken,setUser}){
+  const [tab,setTab]=useState('login');
+  const [f,setF]=useState({name:'',email:'',password:'',role:'user'});
+  const [msg,setMsg]=useState(null);
+  const [busy,setBusy]=useState(false);
+  const h=e=>setF({...f,[e.target.name]:e.target.value});
+  const go=async()=>{
+    setBusy(true);setMsg(null);
+    try{
+      const url=tab==='login'?`${BASE}/api/auth/login`:`${BASE}/api/auth/register`;
+      const body=tab==='login'?{email:f.email,password:f.password}:f;
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const j=await r.json();
+      if(j.success){setMsg({t:'ok',m:j.message});if(tab==='login'){setToken(j.token);setUser(j.user);}}
+      else setMsg({t:'err',m:j.message});
+    }catch{setMsg({t:'err',m:'Server ulanmadi. Task 2 ni ishga tushiring!'});}
+    setBusy(false);
+  };
+  return(
+    <div className="card">
+      <h2>Autentifikatsiya</h2>
+      <div className="tabs" style={{marginBottom:14}}>
+        <button className={`tab ${tab==='login'?'on':'off'}`} onClick={()=>setTab('login')}>Kirish</button>
+        <button className={`tab ${tab==='register'?'on':'off'}`} onClick={()=>setTab('register')}>Royxatdan otish</button>
+      </div>
+      {msg&&<div className={`alert ${msg.t}`}>{msg.m}</div>}
+      {tab==='register'&&<input name="name" placeholder="Ism" value={f.name} onChange={h}/>}
+      <input name="email" type="email" placeholder="Email" value={f.email} onChange={h}/>
+      <input name="password" type="password" placeholder="Parol" value={f.password} onChange={h}/>
+      {tab==='register'&&<select name="role" value={f.role} onChange={h}><option value="user">User</option><option value="admin">Admin</option></select>}
+      <button className="btn bg" onClick={go} disabled={busy}>{busy?'Yuklanmoqda...':tab==='login'?'Kirish':'Royxatdan otish'}</button>
+      {token&&<div className="tbox">JWT: {token.slice(0,80)}...</div>}
+    </div>
+  );
+}
+
+function Users({token}){
+  const [users,setUsers]=useState([]);
+  const [msg,setMsg]=useState(null);
+  const load=async()=>{
+    try{
+      const r=await fetch(`${BASE}/api/users`,{headers:{Authorization:`Bearer ${token}`}});
+      const j=await r.json();
+      if(j.success)setUsers(j.data);else setMsg({t:'err',m:j.message});
+    }catch{setMsg({t:'err',m:'Server ulanmadi'});}
+  };
+  const del=async id=>{
+    if(!confirm('Ochirmoqchimisiz?'))return;
+    const r=await fetch(`${BASE}/api/users/${id}`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}});
+    const j=await r.json();
+    j.success?(setMsg({t:'ok',m:'Ochirildi'}),load()):setMsg({t:'err',m:j.message});
+  };
+  useEffect(()=>{if(token)load();},[token]);
+  return(
+    <div className="card">
+      <h2>Foydalanuvchilar (Admin Panel)</h2>
+      {msg&&<div className={`alert ${msg.t}`}>{msg.m}</div>}
+      <div className="row" style={{marginBottom:12}}><button className="btn bb" onClick={load}>Yangilash</button></div>
+      <div className="ugrid">
+        {users.length===0?<div className="empty">Hali hech kim yoq. Royxatdan oting.</div>:
+          users.map(u=>(
+            <div className="ucard" key={u.id||u._id}>
+              <div><div className="uname">{u.name}</div><div className="uemail">{u.email}</div></div>
+              <div className="row">
+                <span className={`rb ${u.role==='admin'?'ra':'ru'}`}>{u.role}</span>
+                <button className="btn br" onClick={()=>del(u.id||u._id)}>Ochir</button>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  const [tab,setTab]=useState('auth');
+  const [token,setToken]=useState('');
+  const [user,setUser]=useState(null);
+  return(
+    <div className="wrap">
+      <h1>Codveda Level 2</h1>
+      <div className="sub">Task 1: React Frontend | Task 2: JWT Auth | Task 3: MongoDB</div>
+      {user&&<div style={{textAlign:'center',marginBottom:16,color:'#4ade80'}}>
+        Salom, <b>{user.name}</b> ({user.role})!
+        <button className="btn bgr" style={{marginLeft:10,padding:'4px 12px',fontSize:'.8rem'}} onClick={()=>{setToken('');setUser(null);setTab('auth');}}>Chiqish</button>
+      </div>}
+      <div className="tabs">
+        <button className={`tab ${tab==='auth'?'on':'off'}`} onClick={()=>setTab('auth')}>Login / Register</button>
+        <button className={`tab ${tab==='users'?'on':'off'}`} onClick={()=>setTab('users')}>Foydalanuvchilar</button>
+      </div>
+      {tab==='auth'&&<Auth token={token} setToken={setToken} setUser={setUser}/>}
+      {tab==='users'&&(token?<Users token={token}/>:<div className="card"><div className="empty">Avval login qiling.</div></div>)}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

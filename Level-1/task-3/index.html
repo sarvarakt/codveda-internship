@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Codveda - Users Manager</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #333; }
+    header { background: linear-gradient(135deg,#1a1a2e,#16213e); color:white; padding:20px 40px; }
+    header h1 { font-size:1.5rem; }
+    header span { font-size:0.9rem; color:#aaa; }
+    .container { max-width:900px; margin:30px auto; padding:0 20px; }
+    .card { background:white; border-radius:12px; padding:24px; box-shadow:0 2px 12px rgba(0,0,0,0.08); margin-bottom:28px; }
+    .card h2 { font-size:1.1rem; margin-bottom:16px; color:#1a1a2e; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr 80px; gap:12px; margin-bottom:12px; }
+    input { padding:10px 14px; border:1.5px solid #ddd; border-radius:8px; font-size:0.95rem; }
+    input:focus { outline:none; border-color:#4ade80; }
+    .btn { padding:10px 20px; border:none; border-radius:8px; font-size:0.9rem; cursor:pointer; font-weight:600; }
+    .btn-green { background:#4ade80; color:#1a1a2e; }
+    .btn-blue  { background:#60a5fa; color:white; }
+    .btn-gray  { background:#e5e7eb; color:#555; }
+    .btn-row   { display:flex; gap:10px; flex-wrap:wrap; }
+    #status { padding:10px 16px; border-radius:8px; font-size:0.9rem; display:none; margin-bottom:16px; }
+    #status.success { background:#dcfce7; color:#166534; display:block; }
+    #status.error   { background:#fee2e2; color:#991b1b; display:block; }
+    table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+    th { background:#1a1a2e; color:white; padding:12px 16px; text-align:left; }
+    td { padding:12px 16px; border-bottom:1px solid #f0f0f0; }
+    tr:hover td { background:#f9fafb; }
+    .badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.78rem; font-weight:600; background:#dcfce7; color:#166534; }
+    .action-btn { padding:5px 12px; font-size:0.8rem; border:none; border-radius:6px; cursor:pointer; margin-right:4px; font-weight:600; }
+    .edit-btn   { background:#dbeafe; color:#1d4ed8; }
+    .delete-btn { background:#fee2e2; color:#b91c1c; }
+    #loading { text-align:center; color:#888; padding:20px; }
+    .info-box { background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; padding:12px 16px; font-size:0.85rem; color:#78350f; margin-bottom:20px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Users Manager</h1>
+  <span>Codveda Full-Stack Level 1 - Task 3</span>
+</header>
+<div class="container">
+  <div class="info-box">
+    Bu frontend <code>http://localhost:3000</code> dagi <strong>Task 2 REST API</strong> bilan ishlaydi.
+    Avval task2 papkasida: <code>npm install</code> so'ng <code>node server.js</code>
+  </div>
+  <div class="card">
+    <h2 id="formTitle">Yangi Foydalanuvchi</h2>
+    <div id="status"></div>
+    <div class="form-row">
+      <input type="text"   id="name"  placeholder="Ism (majburiy)" />
+      <input type="email"  id="email" placeholder="Email (majburiy)" />
+      <input type="number" id="age"   placeholder="Yosh" />
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-green" onclick="submitForm()">Saqlash</button>
+      <button class="btn btn-gray"  onclick="cancelEdit()">Bekor qilish</button>
+    </div>
+    <input type="hidden" id="editId" value="" />
+  </div>
+  <div class="card">
+    <h2>Foydalanuvchilar Royxati</h2>
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn btn-blue" onclick="loadUsers()">Yangilash</button>
+    </div>
+    <div id="loading">Yuklanmoqda...</div>
+    <table id="userTable" style="display:none">
+      <thead><tr><th>ID</th><th>Ism</th><th>Email</th><th>Yosh</th><th>Status</th><th>Amallar</th></tr></thead>
+      <tbody id="userBody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+  const API = 'http://localhost:3000/api/users';
+
+  function showStatus(msg, type='success') {
+    const el = document.getElementById('status');
+    el.textContent = msg; el.className = type;
+    setTimeout(() => el.style.display='none', 3000);
+  }
+
+  async function loadUsers() {
+    document.getElementById('loading').style.display='block';
+    document.getElementById('userTable').style.display='none';
+    try {
+      const res = await fetch(API);
+      const json = await res.json();
+      renderTable(json.data);
+    } catch(e) {
+      document.getElementById('loading').textContent = 'Server bilan ulanib bolmadi. Task 2 serverni ishga tushiring!';
+    }
+  }
+
+  function renderTable(users) {
+    const tbody = document.getElementById('userBody');
+    tbody.innerHTML = '';
+    users.forEach(u => {
+      tbody.innerHTML += `<tr>
+        <td>${u.id}</td>
+        <td><strong>${u.name}</strong></td>
+        <td>${u.email}</td>
+        <td>${u.age ?? '-'}</td>
+        <td><span class="badge">Faol</span></td>
+        <td>
+          <button class="action-btn edit-btn"   onclick="editUser(${u.id},'${u.name}','${u.email}',${u.age})">Tahrirlash</button>
+          <button class="action-btn delete-btn" onclick="deleteUser(${u.id})">Ochirish</button>
+        </td>
+      </tr>`;
+    });
+    document.getElementById('loading').style.display='none';
+    document.getElementById('userTable').style.display='table';
+  }
+
+  async function submitForm() {
+    const name   = document.getElementById('name').value.trim();
+    const email  = document.getElementById('email').value.trim();
+    const age    = document.getElementById('age').value;
+    const editId = document.getElementById('editId').value;
+    if (!name || !email) return showStatus('Ism va email majburiy!', 'error');
+    const body = { name, email, age: age ? parseInt(age) : null };
+    try {
+      let res;
+      if (editId) {
+        res = await fetch(`${API}/${editId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+      } else {
+        res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+      }
+      const json = await res.json();
+      if (json.success) { showStatus(json.message); cancelEdit(); loadUsers(); }
+      else showStatus(json.message, 'error');
+    } catch(e) { showStatus('Server bilan xatolik', 'error'); }
+  }
+
+  function editUser(id, name, email, age) {
+    document.getElementById('editId').value = id;
+    document.getElementById('name').value   = name;
+    document.getElementById('email').value  = email;
+    document.getElementById('age').value    = age === 'null' ? '' : age;
+    document.getElementById('formTitle').textContent = `Tahrirlash (ID: ${id})`;
+    window.scrollTo(0,0);
+  }
+
+  function cancelEdit() {
+    ['editId','name','email','age'].forEach(id => document.getElementById(id).value='');
+    document.getElementById('formTitle').textContent = 'Yangi Foydalanuvchi';
+  }
+
+  async function deleteUser(id) {
+    if (!confirm(`ID ${id} ni ochirmoqchimisiz?`)) return;
+    try {
+      const res  = await fetch(`${API}/${id}`, { method:'DELETE' });
+      const json = await res.json();
+      if (json.success) { showStatus(json.message); loadUsers(); }
+      else showStatus(json.message, 'error');
+    } catch(e) { showStatus('Server bilan xatolik', 'error'); }
+  }
+
+  loadUsers();
+</script>
+</body>
+</html>
